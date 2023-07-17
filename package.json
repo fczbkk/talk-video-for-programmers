@@ -1,0 +1,14 @@
+{
+  "name": "@fczbkk/video-for-programmers",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "marp src/index.md -o docs/index.html"
+  },
+  "keywords": [],
+  "author": "Riki Fridrich <riki@fczbkk.com> (https://fczbkk.com/)",
+  "license": "MIT",
+  "devDependencies": {
+    "@marp-team/marp-cli": "^3.1.0"
+  },
+  "private": true
+}
