@@ -96,28 +96,49 @@ videofit() {
 
 ---
 
+# Video from image
+
+```
+ffmpeg -loop 1 -i input.png -c:v libx264 -t 3 output.mp4
+```
+
+---
+
 # Join videos
 
-```
-ffmpeg -f concat -i <(printf "file '%s'\n" input1.mp4 input2.mp4) -c copy output.mp4
-```
+## input.txt
 
 ```
-videojoin() {
-  local counter=0
-  local inputs_list=""
-  local filters_list=""
+file input1.mp4
+file input2.mp4
+```
 
-  for param in "$@"; do
-    inputs_list+=" -i ${param} "
-    filters_list+="[${counter}:v:0]"
-    filters_list+="[${counter}:a:0]"
-    counter=$((counter + 1))
+## CLI
+
+```
+ffmpeg -f concat -i input.txt -c copy output.mp4
+```
+
+---
+
+# Join videos function
+
+```
+videoconcat() {
+  # Create input.txt file
+  local input_file="input.txt"
+  touch "$input_file"
+
+  # Loop through the parameters and append file paths to input.txt
+  for video_file in "$@"; do
+    echo "file '$video_file'" >> "$input_file"
   done
 
-  filters_list+="concat=n=$#:v=1:a=1[outv][outa]"
+  # Concatenate the videos
+  ffmpeg -f concat -i "$input_file" -c copy output.mp4
 
-  ffmpeg $inputs_list -filter_complex "$filters_list" -map "[outv]" -map "[outa]" output.mp4
+  # Delete the input.txt file
+  rm "$input_file"
 }
 ```
 
@@ -135,7 +156,31 @@ ffmpeg -i input.mov output.gif
 
 # Video to GIF
 
-## PRO version
+## With limited FPS
+
+```
+ffmpeg -i input.mov -vf "fps=10,scale=1000:-1:flags=lanczos" output.gif
+```
+
+- When using filters, scale has to be set.
+- The ["lanczos" resampling algorithm](https://en.wikipedia.org/wiki/Lanczos_resampling) seems to produce the sharpest GIFs.
+
+---
+
+# Video to GIF
+
+## With palette
+
+```
+ffmpeg -y -i input.mov -vf fps=10,scale=1000:-1:flags=lanczos,palettegen palette.png
+ffmpeg -y -i input.mov -i palette.png -filter_complex "fps=10,scale=1000:-1:flags=lanczos[x];[x][1:v]paletteuse" output.gif
+```
+
+---
+
+# Video to GIF
+
+# All together now
 
 ```
 # First parameter is video file path. Second parameter is GIF width
@@ -159,4 +204,16 @@ videotogif () {
   # cleanup palette
   rm "$palette"
 }
+```
+
+---
+
+# Dual recording
+
+- Use OBS to record screen and cam at once.
+- Crop parts of the recording into separate videos.
+
+```
+ffmpeg -i input.mov -filter:v "crop=1920:1080:0:0" screen.mp4
+ffmpeg -i input.mov -filter:v "crop=1920:1080:1920:0" cam.mp4
 ```
