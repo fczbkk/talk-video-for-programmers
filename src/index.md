@@ -184,10 +184,21 @@ ffmpeg -i input.mov output.gif
 ## With limited FPS
 
 ```
+ffmpeg -i input.mov -vf "fps=10" output.gif
+```
+
+- The ["lanczos" resampling algorithm](https://en.wikipedia.org/wiki/Lanczos_resampling) seems to produce the sharpest GIFs.
+
+---
+
+# Video to GIF
+
+## With rescaling
+
+```
 ffmpeg -i input.mov -vf "fps=10,scale=1000:-1:flags=lanczos" output.gif
 ```
 
-- When using filters, scale has to be set.
 - The ["lanczos" resampling algorithm](https://en.wikipedia.org/wiki/Lanczos_resampling) seems to produce the sharpest GIFs.
 
 ---
@@ -205,7 +216,7 @@ ffmpeg -y -i input.mov -i palette.png -filter_complex "fps=10,scale=1000:-1:flag
 
 # Video to GIF
 
-# All together now
+## As a function
 
 ```
 # First parameter is video file path. Second parameter is GIF width
