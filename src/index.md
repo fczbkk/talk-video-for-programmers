@@ -7,10 +7,6 @@
 - [FFmpeg official page](https://ffmpeg.org/)
 - [install via Homebrew](https://formulae.brew.sh/formula/ffmpeg)
 
-```
-ffmpeg -i input.mov output.mp4
-```
-
 ---
 
 # Documentation
@@ -23,7 +19,7 @@ ffmpeg -i input.mov output.mp4
 
 ---
 
-# Format conversion
+# Most basic usage
 
 ```
 ffmpeg -i input.mov output.mp4
@@ -36,7 +32,7 @@ ffmpeg -i input.mov output.mp4
 ## Specify codec
 
 ```
-ffmpeg -i input.mp4 -c:v libx264 output.mp4
+ffmpeg -i input.mov -c:v libx264 output.mp4
 ```
 
 - Codec H.264 is currently the best choice for displaying in the browser.
@@ -48,7 +44,7 @@ ffmpeg -i input.mp4 -c:v libx264 output.mp4
 ## Optimal settings
 
 ```
-ffmpeg -i input.mp4 -c:v libx264 -c:a copy -preset medium -crf 23 output.mp4
+ffmpeg -i input.mov -c:v libx264 -c:a copy -preset medium -crf 23 output.mp4
 ```
 
 - Good mix of quality and speed of conversion.
@@ -65,6 +61,30 @@ ffmpeg -i input.mov -ac 1 output.mp4
 
 ---
 
+# Format conversion
+
+## All together now
+
+```
+ffmpeg -i input.mov -c:v libx264 -c:a copy -preset medium -crf 23 -ac 1 output.mp4
+```
+
+---
+
+# Format conversion
+
+## As a function
+
+```
+video-convert() {
+  local source=$1
+  local output="${source%.*}.mp4"
+  ffmpeg -i $source -c:v libx264 -c:a copy -preset medium -crf 23 -ac 1 $output
+}
+```
+
+---
+
 # Crop
 
 ```
@@ -76,23 +96,15 @@ ffmpeg -i input.mov -ss 00:00:05 -to 00:00:10 output.mp4
 
 ---
 
-# Scale to fit width 1000px
+# Scale to fit
 
 ```
 ffmpeg -i input.mov -vf "setsar=1,scale='min(1000,iw)':-2" output.mp4
 ```
 
 - `setsar` - Set sample aspect ratio.
+- `min(1000,iw)` - Do not resize if input is smaller.
 - height `-2` - Makes sure height is divisible by 2, which is required by some codecs.
-
-```
-videofit() {
-  local source=$1
-  local max_width=${2:-1000}
-  local output="${source%.*}.${max_width}.mp4"
-  ffmpeg -i "$source" -vf "setsar=1,scale='min($max_width,iw)':-2" "$output"
-}
-```
 
 ---
 
@@ -124,7 +136,7 @@ ffmpeg -f concat -i input.txt -c copy output.mp4
 # Join videos function
 
 ```
-videoconcat() {
+video-concat() {
   # Create input.txt file
   local input_file="input.txt"
   touch "$input_file"
@@ -141,6 +153,19 @@ videoconcat() {
   rm "$input_file"
 }
 ```
+
+---
+
+# Split dual recording
+
+- Use OBS to record screen and cam at once.
+- Crop parts of the recording into separate videos.
+
+```
+ffmpeg -i input.mov -filter:v "crop=1920:1080:0:0" screen.mp4
+ffmpeg -i input.mov -filter:v "crop=1920:1080:1920:0" cam.mp4
+```
+
 
 ---
 
@@ -184,7 +209,7 @@ ffmpeg -y -i input.mov -i palette.png -filter_complex "fps=10,scale=1000:-1:flag
 
 ```
 # First parameter is video file path. Second parameter is GIF width
-videotogif () {
+video-to-gif () {
   local palette=_palette.png
   local source=$1
   local scale=$2
@@ -208,12 +233,24 @@ videotogif () {
 
 ---
 
-# Dual recording
+# One more thing
 
-- Use OBS to record screen and cam at once.
-- Crop parts of the recording into separate videos.
+- Use Automator to create app from a script.
+- Drag app to Dock.
+- Drag and drop files to app.
 
 ```
-ffmpeg -i input.mov -filter:v "crop=1920:1080:0:0" screen.mp4
-ffmpeg -i input.mov -filter:v "crop=1920:1080:1920:0" cam.mp4
+local palette=_palette.png
+local source=$1
+local scale=$(/usr/local/bin/ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=noprint_wrappers=1:nokey=1 "$source")
+local output="${source%.*}.gif"
+
+# create palette
+/usr/local/bin/ffmpeg -y -i "$source" -vf "fps=10,scale=$scale:-1:flags=lanczos,palettegen" "$palette"
+
+# generate gif
+/usr/local/bin/ffmpeg -y -i "$source" -i "$palette" -filter_complex "fps=10,scale=$scale:-1:flags=lanczos[x];[x][1:v]paletteuse" "$output"
+
+# cleanup palette
+rm "$palette"
 ```
